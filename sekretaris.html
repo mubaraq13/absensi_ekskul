@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sekretaris</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+    
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">Dashboard Sekretaris</a>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <!-- LOADING SCREEN -->
+    <div class="loading-overlay" id="loadingScreen">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <div class="container">
+        
+        <!-- KOTAK KONTROL BUKA/TUTUP ABSENSI (WAKTU SPESIFIK) -->
+        <div class="bg-white px-4 py-3 rounded shadow-sm mb-4 border-start border-5 border-primary">
+            <div class="d-flex align-items-center mb-2">
+                <div class="me-auto">
+                    <h5 class="mb-0 fw-bold">Status Form Absensi Siswa</h5>
+                    <small class="text-muted" id="teksStatusAbsen">Memuat status...</small>
+                </div>
+                <div class="form-check form-switch fs-3 mb-0">
+                    <input class="form-check-input" type="checkbox" id="switchAbsen" style="cursor: pointer;" disabled>
+                </div>
+            </div>
+            <div class="d-flex align-items-center border-top pt-2 mt-2">
+                <span class="small text-muted me-2">Tutup otomatis pada jam:</span>
+                
+                <!-- INPUT JAM SPESIFIK -->
+                <input type="time" id="waktuTutupAbsen" class="form-control form-control-sm w-auto d-inline-block border-primary text-primary fw-bold">
+                <span class="small fw-bold ms-2 me-3">WIB</span>
+                
+                <small class="text-muted fst-italic d-none d-md-inline">(Kosongkan jika ingin ditutup manual)</small>
+                <span class="small text-danger ms-auto fw-bold d-none" id="teksSisaWaktu"></span>
+            </div>
+        </div>
+
+        <!-- NAV TABS -->
+        <ul class="nav nav-tabs mb-4 border-bottom border-primary" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold text-primary" id="live-tab" data-bs-toggle="tab" data-bs-target="#tab-live" type="button">🔴 Live Absensi</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-secondary" id="rekap-tab" data-bs-toggle="tab" data-bs-target="#tab-rekap" type="button">📅 Rekap Harian</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-secondary" id="anggota-tab" data-bs-toggle="tab" data-bs-target="#tab-anggota" type="button">👥 Kelola Anggota</button>
+            </li>
+        </ul>
+
+        <!-- TAB CONTENTS -->
+        <div class="tab-content" id="dashboardTabsContent">
+            
+            <!-- ================= TAB 1: LIVE ABSENSI ================= -->
+            <div class="tab-pane fade show active" id="tab-live" role="tabpanel">
+                
+                <!-- Alert Jika Ditutup -->
+                <div class="alert alert-danger text-center shadow-sm py-5 d-none" id="alertTutupSesi">
+                    <h3 class="fw-bold mb-3">⛔ SESI ABSENSI DITUTUP</h3>
+                    <p class="mb-0 text-muted">Data absensi hari ini telah diarsipkan. Silakan buka menu <b>📅 Rekap Harian</b> untuk melihat dan mengelola data.</p>
+                </div>
+
+                <!-- Kontainer Live (Tampil jika Buka) -->
+                <div id="containerLiveAbsen">
+                    <div class="row text-center mb-4">
+                        <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm border-bottom border-success border-4"><h6>Hadir (Live)</h6><h3 class="fw-bold text-success" id="statLiveHadir">0</h3></div></div>
+                        <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm border-bottom border-info border-4"><h6>Izin (Live)</h6><h3 class="fw-bold text-info" id="statLiveIzin">0</h3></div></div>
+                        <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm border-bottom border-warning border-4"><h6>Sakit (Live)</h6><h3 class="fw-bold text-warning" id="statLiveSakit">0</h3></div></div>
+                        <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm border-bottom border-danger border-4"><h6>Alpa (Live)</h6><h3 class="fw-bold text-danger" id="statLiveAlpa">0</h3></div></div>
+                    </div>
+                    <div class="card shadow-sm mb-5">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Data Absensi Masuk (Hari Ini)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered align-middle text-center">
+                                    <thead class="table-primary">
+                                        <tr><th>Jam</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Status</th><th>Keterangan</th><th>Aksi</th></tr>
+                                    </thead>
+                                    <tbody id="tableBodyLive"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: REKAP HARIAN ================= -->
+            <div class="tab-pane fade" id="tab-rekap" role="tabpanel">
+                <div class="row text-center mb-4">
+                    <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm"><h6>Rekap Hadir</h6><h3 class="fw-bold text-success" id="statRekapHadir">0</h3></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm"><h6>Rekap Izin</h6><h3 class="fw-bold text-info" id="statRekapIzin">0</h3></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm"><h6>Rekap Sakit</h6><h3 class="fw-bold text-warning" id="statRekapSakit">0</h3></div></div>
+                    <div class="col-6 col-md-3 mb-2"><div class="card bg-white p-3 shadow-sm"><h6>Rekap Alpa</h6><h3 class="fw-bold text-danger" id="statRekapAlpa">0</h3></div></div>
+                </div>
+                <div class="card shadow-sm mb-5">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3">Rekapitulasi Data Absensi</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-3 mb-2"><input type="text" id="searchRekap" class="form-control" placeholder="Cari Nama/ID..."></div>
+                            <div class="col-md-3 mb-2"><input type="date" id="filterTanggalRekap" class="form-control" title="Pilih Tanggal Rekap"></div>
+                            <div class="col-md-3 mb-2"><select id="filterKelasRekap" class="form-select"><option value="">Semua Kelas</option><option value="X">Kelas X</option><option value="XI">Kelas XI</option><option value="XII">Kelas XII</option></select></div>
+                            <div class="col-md-3 mb-2"><select id="filterStatusRekap" class="form-select"><option value="">Semua Status</option><option value="Hadir">Hadir</option><option value="Izin">Izin</option><option value="Sakit">Sakit</option><option value="Alpa">Alpa</option></select></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle text-center">
+                                <thead class="table-dark">
+                                    <tr><th>Tanggal & Jam</th><th>ID</th><th>Nama</th><th>Kelas</th><th>Status</th><th>Keterangan</th><th>Aksi</th></tr>
+                                </thead>
+                                <tbody id="tableBodyRekap"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 3: KELOLA ANGGOTA ================= -->
+            <div class="tab-pane fade" id="tab-anggota" role="tabpanel">
+                <div class="card shadow-sm mb-5 border-0 border-top border-primary border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold m-0">Database Anggota</h5>
+                            <button class="btn btn-primary fw-bold" onclick="bukaModalAnggota('tambah')">+ Tambah Anggota</button>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-2"><input type="text" id="searchAnggota" class="form-control" placeholder="Cari berdasarkan Nama, ID, atau Jabatan..."></div>
+                            <div class="col-md-6 mb-2"><select id="filterKelasAnggota" class="form-select"><option value="">Semua Kelas</option><option value="X">Kelas X</option><option value="XI">Kelas XI</option><option value="XII">Kelas XII</option></select></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle text-center">
+                                <thead class="table-dark">
+                                    <tr><th>ID</th><th>Nama Anggota</th><th>Kelas</th><th>Jurusan</th><th>Jabatan</th><th>Status</th><th>Aksi</th></tr>
+                                </thead>
+                                <tbody id="tableBodyAnggota"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT ABSENSI -->
+    <div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-warning text-dark"><h5 class="modal-title fw-bold">Edit Absensi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="formEdit"><input type="hidden" id="editIdAbsensi"><div class="mb-3"><label class="form-label text-muted small">Nama Siswa</label><input type="text" id="editNama" class="form-control fw-bold bg-light" readonly></div><div class="mb-3"><label class="form-label text-muted small">Status</label><select id="editStatus" class="form-select border-warning" required><option value="Hadir">Hadir</option><option value="Izin">Izin</option><option value="Sakit">Sakit</option><option value="Alpa">Alpa</option></select></div><div class="mb-4"><label class="form-label text-muted small">Keterangan</label><textarea id="editKeterangan" class="form-control" rows="2"></textarea></div><button type="submit" class="btn btn-warning fw-bold w-100">Simpan Perubahan</button></form></div></div></div></div>
+
+    <!-- MODAL KELOLA ANGGOTA -->
+    <div class="modal fade" id="anggotaModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content shadow"><div class="modal-header bg-primary text-white" id="anggotaModalHeader"><h5 class="modal-title fw-bold" id="anggotaModalTitle">Tambah Anggota</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="formAnggota"><input type="hidden" id="formAnggotaMode"><div class="row"><div class="col-md-4 mb-3"><label class="form-label text-muted small">ID Anggota</label><input type="text" id="anggotaId" class="form-control bg-light" placeholder="Auto-Generate" readonly></div><div class="col-md-8 mb-3"><label class="form-label text-muted small">Nama Lengkap</label><input type="text" id="anggotaNama" class="form-control border-primary" required></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label text-muted small">Kelas</label><input type="text" id="anggotaKelas" class="form-control border-primary" placeholder="Cth: X, XI" required></div><div class="col-md-6 mb-3"><label class="form-label text-muted small">Jurusan</label><input type="text" id="anggotaJurusan" class="form-control" placeholder="Cth: IPA, IPS"></div></div><div class="row"><div class="col-md-6 mb-4"><label class="form-label text-muted small">Jabatan</label><input type="text" id="anggotaJabatan" class="form-control border-primary" placeholder="Cth: Anggota, Ketua" required></div><div class="col-md-6 mb-4"><label class="form-label text-muted small">Status Keanggotaan</label><select id="anggotaStatus" class="form-select border-primary"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div></div><button type="submit" class="btn btn-primary w-100 fw-bold">Simpan Data Anggota</button></form></div></div></div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sekretaris.js"></script>
+</body>
+</html>
